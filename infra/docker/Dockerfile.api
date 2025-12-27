@@ -1,0 +1,63 @@
+# Node.js API Dockerfile
+FROM node:20-alpine AS base
+
+WORKDIR /app
+
+# Install dependencies for building native modules
+RUN apk add --no-cache python3 make g++
+
+# Copy workspace configuration
+COPY package.json ./
+COPY api-node/package.json ./api-node/
+COPY shared/package.json ./shared/
+
+# Install dependencies
+RUN npm install --workspace=shared --workspace=api-node
+
+# Development stage
+FROM base AS development
+
+COPY shared ./shared
+COPY api-node ./api-node
+
+WORKDIR /app/api-node
+
+CMD ["npm", "run", "dev"]
+
+# Build stage
+FROM base AS builder
+
+COPY shared ./shared
+COPY api-node ./api-node
+
+WORKDIR /app/shared
+RUN npm run build
+
+WORKDIR /app/api-node
+RUN npm run build
+
+# Production stage
+FROM node:20-alpine AS production
+
+WORKDIR /app
+
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
+
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/shared/package.json ./shared/
+COPY --from=builder /app/shared/dist ./shared/dist
+COPY --from=builder /app/api-node/package.json ./api-node/
+COPY --from=builder /app/api-node/dist ./api-node/dist
+
+RUN npm install --workspace=shared --workspace=api-node --omit=dev
+
+USER nodejs
+
+WORKDIR /app/api-node
+
+ENV NODE_ENV=production
+
+EXPOSE 3001
+
+CMD ["node", "dist/index.js"]

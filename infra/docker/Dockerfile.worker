@@ -1,0 +1,54 @@
+# Python Worker Dockerfile
+FROM python:3.12-slim AS base
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements first for caching
+COPY worker-python/requirements.txt ./worker-python/
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r worker-python/requirements.txt
+
+# Development stage
+FROM base AS development
+
+COPY shared ./shared
+COPY worker-python ./worker-python
+
+WORKDIR /app/worker-python
+
+CMD ["python", "-m", "src.main"]
+
+# Production stage
+FROM python:3.12-slim AS production
+
+WORKDIR /app
+
+RUN addgroup --gid 1001 --system python && \
+    adduser --uid 1001 --system --gid 1001 python
+
+# Install runtime dependencies only
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=base /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
+COPY --from=base /usr/local/bin /usr/local/bin
+
+COPY shared/prompts ./shared/prompts
+COPY worker-python/src ./worker-python/src
+
+USER python
+
+WORKDIR /app/worker-python
+
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+CMD ["python", "-m", "src.main"]

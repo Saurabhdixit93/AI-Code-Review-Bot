@@ -1,0 +1,100 @@
+# ===========================================
+# Render.com Deployment Configuration
+# https://render.com
+# ===========================================
+
+services:
+  # Node.js API Service
+  - type: web
+    name: ai-code-review-api
+    env: node
+    region: oregon
+    plan: starter
+    buildCommand: cd api-node && npm install && npm run build
+    startCommand: cd api-node && npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: API_PORT
+        value: 3001
+      - key: MONGODB_URI
+        sync: false
+      - key: MONGODB_DB_NAME
+        value: code_review_bot
+      - key: REDIS_URL
+        fromService:
+          name: ai-code-review-redis
+          type: redis
+          property: connectionString
+      - key: GITHUB_APP_ID
+        sync: false
+      - key: GITHUB_APP_PRIVATE_KEY
+        sync: false
+      - key: GITHUB_APP_WEBHOOK_SECRET
+        sync: false
+      - key: GITHUB_CLIENT_ID
+        sync: false
+      - key: GITHUB_CLIENT_SECRET
+        sync: false
+      - key: AI_API_KEY
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ENCRYPTION_KEY
+        generateValue: true
+
+  # Next.js Web Dashboard
+  - type: web
+    name: ai-code-review-web
+    env: node
+    region: oregon
+    plan: starter
+    buildCommand: cd web-nextjs && npm install && npm run build
+    startCommand: cd web-nextjs && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          name: ai-code-review-api
+          type: web
+          property: url
+      - key: NEXTAUTH_URL
+        fromService:
+          name: ai-code-review-web
+          type: web
+          property: url
+      - key: NEXTAUTH_SECRET
+        generateValue: true
+      - key: GITHUB_CLIENT_ID
+        sync: false
+      - key: GITHUB_CLIENT_SECRET
+        sync: false
+
+  # Python Worker
+  - type: worker
+    name: ai-code-review-worker
+    env: python
+    region: oregon
+    plan: starter
+    buildCommand: cd worker-python && ./build.sh
+    startCommand: cd worker-python && ./start.sh
+    envVars:
+      - key: MONGODB_URI
+        sync: false
+      - key: MONGODB_DB_NAME
+        value: code_review_bot
+      - key: REDIS_URL
+        fromService:
+          name: ai-code-review-redis
+          type: redis
+          property: connectionString
+      - key: GITHUB_APP_ID
+        sync: false
+      - key: GITHUB_APP_PRIVATE_KEY
+        sync: false
+      - key: AI_API_KEY
+        sync: false
+# Redis via Render (or use Upstash for free tier)
+# Note: Render Redis requires paid plan, consider Upstash free tier

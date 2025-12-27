@@ -1,0 +1,65 @@
+# Next.js Dashboard Dockerfile
+FROM node:20-alpine AS base
+
+WORKDIR /app
+
+# Install dependencies for building
+RUN apk add --no-cache libc6-compat
+
+# Copy workspace configuration
+COPY package.json ./
+COPY web-nextjs/package.json ./web-nextjs/
+COPY shared/package.json ./shared/
+
+# Install dependencies
+RUN npm install --workspace=shared --workspace=web-nextjs
+
+# Development stage
+FROM base AS development
+
+COPY shared ./shared
+COPY web-nextjs ./web-nextjs
+
+WORKDIR /app/web-nextjs
+
+ENV NEXT_TELEMETRY_DISABLED=1
+
+CMD ["npm", "run", "dev"]
+
+# Build stage
+FROM base AS builder
+
+COPY shared ./shared
+COPY web-nextjs ./web-nextjs
+
+WORKDIR /app/shared
+RUN npm run build
+
+WORKDIR /app/web-nextjs
+
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
+
+RUN npm run build
+
+# Production stage
+FROM node:20-alpine AS production
+
+WORKDIR /app
+
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nextjs -u 1001
+
+COPY --from=builder /app/web-nextjs/public ./web-nextjs/public
+COPY --from=builder --chown=nextjs:nodejs /app/web-nextjs/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/web-nextjs/.next/static ./web-nextjs/.next/static
+
+USER nextjs
+
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+
+EXPOSE 3000
+
+CMD ["node", "web-nextjs/server.js"]

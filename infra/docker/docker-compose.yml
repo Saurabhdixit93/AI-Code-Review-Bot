@@ -1,0 +1,126 @@
+version: "3.8"
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:7.0
+    container_name: ai-code-review-db
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-dev_password_change_me}
+      MONGO_INITDB_DATABASE: ${MONGO_DB_NAME:-code_review_bot}
+    volumes:
+      - mongodb_data:/data/db
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ai-code-review-network
+
+  # Redis Queue
+  redis:
+    image: redis:7-alpine
+    container_name: ai-code-review-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ai-code-review-network
+
+  # Node.js API Control Plane
+  api:
+    build:
+      context: ../../
+      dockerfile: infra/docker/Dockerfile.api
+    container_name: ai-code-review-api
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      MONGODB_URI: mongodb://${MONGO_USER:-admin}:${MONGO_PASSWORD:-dev_password_change_me}@mongodb:27017/${MONGO_DB_NAME:-code_review_bot}?authSource=admin
+      REDIS_URL: redis://redis:6379
+      API_PORT: 3001
+    ports:
+      - "3001:3001"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ../../api-node:/app/api-node
+      - ../../shared:/app/shared
+      - /app/api-node/node_modules
+    networks:
+      - ai-code-review-network
+
+  # Python Worker
+  worker:
+    build:
+      context: ../../
+      dockerfile: infra/docker/Dockerfile.worker
+    container_name: ai-code-review-worker
+    restart: unless-stopped
+    environment:
+      MONGODB_URI: mongodb://${MONGO_USER:-admin}:${MONGO_PASSWORD:-dev_password_change_me}@mongodb:27017/${MONGO_DB_NAME:-code_review_bot}?authSource=admin
+      REDIS_URL: redis://redis:6379
+      AI_BASE_URL: ${AI_BASE_URL:-https://openrouter.ai/api/v1}
+      AI_API_KEY: ${AI_API_KEY}
+      AI_MODEL_TIER1: ${AI_MODEL_TIER1:-openai/gpt-3.5-turbo}
+      AI_MODEL_TIER2: ${AI_MODEL_TIER2:-openai/gpt-4-turbo}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ../../worker-python:/app/worker-python
+      - ../../shared:/app/shared
+    networks:
+      - ai-code-review-network
+
+  # Next.js Dashboard
+  web:
+    build:
+      context: ../../
+      dockerfile: infra/docker/Dockerfile.web
+    container_name: ai-code-review-web
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    volumes:
+      - ../../web-nextjs:/app/web-nextjs
+      - ../../shared:/app/shared
+      - /app/web-nextjs/node_modules
+      - /app/web-nextjs/.next
+    networks:
+      - ai-code-review-network
+
+volumes:
+  mongodb_data:
+  redis_data:
+
+networks:
+  ai-code-review-network:
+    driver: bridge

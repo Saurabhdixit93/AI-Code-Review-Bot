@@ -1,0 +1,39 @@
+# Python Worker Dependencies
+# Enterprise AI Code Review Platform
+
+# Core
+python-dotenv==1.0.1
+pydantic==2.10.4
+pydantic-settings==2.7.0
+
+# Database
+motor==3.6.0
+beanie==1.28.0
+
+# Redis & Queue
+redis==5.2.1
+rq==2.0.0
+
+# GitHub Integration
+PyGithub==2.5.0
+httpx==0.28.1
+
+# AI/LLM Integration (OpenRouter compatible)
+openai==1.58.1
+
+# Code Analysis
+gitpython==3.1.43
+unidiff==0.7.5
+
+# Utilities
+structlog==24.4.0
+tenacity==9.0.0
+pyyaml==6.0.2
+
+# Development
+pytest==8.3.4
+pytest-asyncio==0.25.0
+pytest-cov==6.0.0
+black==24.10.0
+ruff==0.8.4
+mypy==1.14.0

@@ -1,0 +1,117 @@
+version: "3.8"
+
+# ===========================================
+# Docker Compose for Production Deployment
+# ===========================================
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME:-ai_code_review}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    restart: always
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Node.js API
+  api:
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile.api
+    restart: always
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-ai_code_review}
+      REDIS_URL: redis://redis:6379
+    env_file:
+      - ../../.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Python Worker
+  worker:
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile.worker
+    restart: always
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-ai_code_review}
+      REDIS_URL: redis://redis:6379
+    env_file:
+      - ../../.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      replicas: 2
+
+  # Next.js Web Dashboard
+  web:
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile.web
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: http://api:3001
+    env_file:
+      - ../../.env
+    depends_on:
+      - api
+
+  # Nginx Reverse Proxy (optional)
+  nginx:
+    image: nginx:alpine
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+    depends_on:
+      - api
+      - web
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  default:
+    name: ai-code-review-network

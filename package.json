@@ -1,0 +1,41 @@
+{
+  "name": "ai-code-review-platform",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Enterprise AI Code Review Bot for GitHub Pull Requests - Hybrid static-analysis + AI reasoning platform",
+  "workspaces": [
+    "api-node",
+    "web-nextjs",
+    "shared"
+  ],
+  "scripts": {
+    "install:all": "npm install && cd worker-python && python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt",
+    "dev": "concurrently -n api,web,worker -c blue,green,yellow \"npm run dev:api\" \"npm run dev:web\" \"npm run dev:worker\"",
+    "dev:api": "npm run dev --workspace=api-node",
+    "dev:web": "npm run dev --workspace=web-nextjs",
+    "dev:worker": "cd worker-python && ([ -d venv ] || python3 -m venv venv) && source venv/bin/activate && pip install -q -r requirements.txt && python -m src.main",
+    "start": "concurrently -n api,web,worker -c blue,green,yellow \"npm run start:api\" \"npm run start:web\" \"npm run start:worker\"",
+    "start:api": "npm run start --workspace=api-node",
+    "start:web": "npm run start --workspace=web-nextjs",
+    "start:worker": "cd worker-python && source venv/bin/activate && python -m src.main",
+    "build": "npm run build --workspaces",
+    "build:shared": "npm run build --workspace=shared",
+    "lint": "npm run lint --workspaces",
+    "test": "npm run test --workspaces",
+    "test:api": "npm run test --workspace=api-node",
+    "test:web": "npm run test --workspace=web-nextjs",
+    "test:worker": "cd worker-python && source venv/bin/activate && pytest",
+    "docker:up": "docker-compose -f infra/docker/docker-compose.yml up -d",
+    "docker:down": "docker-compose -f infra/docker/docker-compose.yml down",
+    "docker:logs": "docker-compose -f infra/docker/docker-compose.yml logs -f",
+    "docker:build": "docker-compose -f infra/docker/docker-compose.yml build",
+    "docker:dev": "docker-compose -f infra/docker/docker-compose.yml up mongodb redis -d && npm run dev",
+    "clean": "rm -rf node_modules api-node/node_modules web-nextjs/node_modules shared/node_modules api-node/dist web-nextjs/.next shared/dist"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

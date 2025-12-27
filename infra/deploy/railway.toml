@@ -1,0 +1,23 @@
+# ===========================================
+# Railway.app Deployment Configuration
+# https://railway.app
+# ===========================================
+
+# This file configures Railway deployment
+# Deploy via: railway up
+
+[build]
+builder = "NIXPACKS"
+
+[deploy]
+numReplicas = 1
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+
+# Health check
+healthcheckPath = "/health"
+healthcheckTimeout = 10
+
+# Environment-specific settings
+[environments.production]
+numReplicas = 2

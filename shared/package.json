@@ -1,0 +1,25 @@
+{
+  "name": "@ai-code-review/shared",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Shared types, schemas, and prompts for AI Code Review Platform",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./types": "./dist/types/index.js",
+    "./schemas": "./dist/schemas/index.js",
+    "./prompts/*": "./prompts/*"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}
