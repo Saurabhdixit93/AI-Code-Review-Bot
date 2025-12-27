@@ -3,7 +3,9 @@ import { Repository } from "../models/Repository";
 import { Organization } from "../models/Organization";
 import { PullRequest } from "../models/PullRequest";
 import { Run } from "../models/Run";
-import { addAnalysisJob } from "../config/redis";
+import { User } from "../models/User";
+import { Member } from "../models/Member";
+import { addAnalysisJob, addRepoSyncJob } from "../config/redis";
 import {
   captureRawBody,
   verifyWebhookSignature,
@@ -189,13 +191,56 @@ async function handleInstallationEvent(
 
   switch (action) {
     case "created":
-      logger.info(
-        {
+      try {
+        const { sender } = payload;
+        const { account } = installation;
+        const isOrg = (account as any).type === "Organization";
+
+        // Create or update Organization
+        const org = await Organization.findOneAndUpdate(
+          { githubOrgId: account.id },
+          {
+            name: account.login, // GitHub API uses login as name often, or name if available. account in webhook is usually stripped. Use login as name/slug.
+            slug: account.login,
+            avatarUrl: account.avatar_url,
+            installationId: installation.id,
+            installationStatus: "active",
+          },
+          { upsert: true, new: true }
+        );
+
+        // Find user who installed it
+        const user = await User.findOne({ githubUserId: sender.id });
+
+        if (user) {
+          // Add as owner
+          await Member.findOneAndUpdate(
+            { orgId: org._id, userId: user._id },
+            { role: "owner", acceptedAt: new Date() },
+            { upsert: true }
+          );
+        }
+
+        // Queue sync
+        await addRepoSyncJob({
+          orgId: org._id.toString(),
           installationId: installation.id,
-          account: installation.account.login,
-        },
-        "GitHub App installed"
-      );
+        });
+
+        logger.info(
+          {
+            installationId: installation.id,
+            orgId: org._id,
+            userId: user?._id,
+          },
+          "GitHub App installed & Org created"
+        );
+      } catch (error) {
+        logger.error(
+          { error, installationId: installation.id },
+          "Failed to create org on installation"
+        );
+      }
       break;
 
     case "deleted":
