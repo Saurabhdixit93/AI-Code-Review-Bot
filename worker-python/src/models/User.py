@@ -3,6 +3,8 @@ from typing import Optional
 from beanie import Document
 from pydantic import Field
 
+import pymongo
+
 class User(Document):
     github_user_id: int = Field(..., alias="githubUserId")
     username: str
@@ -18,7 +20,7 @@ class User(Document):
     class Settings:
         name = "users"
         indexes = [
-            "githubUserId",
+            pymongo.IndexModel([("githubUserId", pymongo.ASCENDING)], unique=True),
             "username",
             "email",
         ]

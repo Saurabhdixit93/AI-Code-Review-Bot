@@ -3,6 +3,8 @@ from typing import Optional
 from beanie import Document
 from pydantic import Field
 
+import pymongo
+
 class Organization(Document):
     github_org_id: int = Field(..., alias="githubOrgId")
     name: str
@@ -17,6 +19,6 @@ class Organization(Document):
     class Settings:
         name = "organizations"
         indexes = [
-            "githubOrgId",
+            pymongo.IndexModel([("githubOrgId", pymongo.ASCENDING)], unique=True),
             "slug",
         ]

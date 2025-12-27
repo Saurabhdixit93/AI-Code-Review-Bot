@@ -4,6 +4,8 @@ from beanie import Document, Link
 from pydantic import Field, BaseModel
 from .Organization import Organization
 
+import pymongo
+
 class RepoConfig(BaseModel):
     run_mode: str = Field("shadow", alias="runMode")
     max_pr_files: int = Field(100, alias="maxPrFiles")
@@ -37,6 +39,6 @@ class Repository(Document):
         name = "repositories"
         indexes = [
             "orgId",
-            "githubRepoId",
+            pymongo.IndexModel([("githubRepoId", pymongo.ASCENDING)], unique=True),
             "fullName",
         ]
