@@ -5,18 +5,18 @@ version: "3.8"
 # ===========================================
 
 services:
-  # PostgreSQL Database
-  postgres:
-    image: postgres:15-alpine
+  # MongoDB Database
+  mongodb:
+    image: mongo:7.0
     restart: always
     environment:
-      POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME:-ai_code_review}
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_DB_NAME:-code_review_bot}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mongodb_data:/data/db
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -44,12 +44,13 @@ services:
       - "3001:3001"
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-ai_code_review}
+      MONGODB_URI: mongodb://${MONGO_USER:-admin}:${MONGO_PASSWORD}@mongodb:27017/${MONGO_DB_NAME:-code_review_bot}?authSource=admin
+      MONGODB_DB_NAME: ${MONGO_DB_NAME:-code_review_bot}
       REDIS_URL: redis://redis:6379
     env_file:
       - ../../.env
     depends_on:
-      postgres:
+      mongodb:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -66,12 +67,13 @@ services:
       dockerfile: infra/docker/Dockerfile.worker
     restart: always
     environment:
-      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-ai_code_review}
+      MONGODB_URI: mongodb://${MONGO_USER:-admin}:${MONGO_PASSWORD}@mongodb:27017/${MONGO_DB_NAME:-code_review_bot}?authSource=admin
+      MONGODB_DB_NAME: ${MONGO_DB_NAME:-code_review_bot}
       REDIS_URL: redis://redis:6379
     env_file:
       - ../../.env
     depends_on:
-      postgres:
+      mongodb:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -109,7 +111,7 @@ services:
       - web
 
 volumes:
-  postgres_data:
+  mongodb_data:
   redis_data:
 
 networks:

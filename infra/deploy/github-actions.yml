@@ -20,16 +20,16 @@ jobs:
     runs-on: ubuntu-latest
 
     services:
-      postgres:
-        image: postgres:15-alpine
+      mongodb:
+        image: mongo:7.0
         env:
-          POSTGRES_USER: test
-          POSTGRES_PASSWORD: test
-          POSTGRES_DB: test
+          MONGO_INITDB_ROOT_USERNAME: admin
+          MONGO_INITDB_ROOT_PASSWORD: password
+          MONGO_INITDB_DATABASE: test
         ports:
-          - 5432:5432
+          - 27017:27017
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "mongosh --eval \"db.adminCommand('ping')\""
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -81,7 +81,8 @@ jobs:
       - name: Test Node.js API
         run: npm run test --workspace=api-node --if-present
         env:
-          DATABASE_URL: postgresql://test:test@localhost:5432/test
+          MONGODB_URI: mongodb://admin:password@localhost:27017/test?authSource=admin
+          MONGODB_DB_NAME: test
           REDIS_URL: redis://localhost:6379
           JWT_SECRET: test-secret-key-for-testing-only-32chars
           ENCRYPTION_KEY: test-encryption-key-32-characters
@@ -91,7 +92,8 @@ jobs:
           cd worker-python
           pytest --cov=src --cov-report=xml
         env:
-          DATABASE_URL: postgresql://test:test@localhost:5432/test
+          MONGODB_URI: mongodb://admin:password@localhost:27017/test?authSource=admin
+          MONGODB_DB_NAME: test
           REDIS_URL: redis://localhost:6379
 
       - name: Build Next.js

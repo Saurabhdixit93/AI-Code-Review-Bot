@@ -37,7 +37,8 @@ metadata:
   namespace: ai-code-review
 type: Opaque
 stringData:
-  DATABASE_URL: "postgresql://user:password@postgres:5432/ai_code_review"
+  MONGODB_URI: "mongodb://admin:password@mongodb:27017/code_review_bot?authSource=admin"
+  MONGODB_DB_NAME: "code_review_bot"
   REDIS_URL: "redis://redis:6379"
   GITHUB_APP_ID: ""
   GITHUB_APP_PRIVATE_KEY: ""

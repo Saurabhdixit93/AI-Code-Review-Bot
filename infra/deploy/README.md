@@ -7,7 +7,7 @@ This directory contains deployment configurations for various platforms.
 | File                      | Description                                                      |
 | ------------------------- | ---------------------------------------------------------------- |
 | `kubernetes.yaml`         | Kubernetes manifests (namespace, deployments, services, ingress) |
-| `docker-compose.prod.yml` | Production Docker Compose with Nginx, Postgres, Redis            |
+| `docker-compose.prod.yml` | Production Docker Compose with Nginx, MongoDB, Redis             |
 | `render.yaml`             | Render.com blueprint deployment                                  |
 | `railway.toml`            | Railway.app configuration                                        |
 | `github-actions.yml`      | CI/CD pipeline (copy to `.github/workflows/`)                    |
@@ -25,9 +25,6 @@ cp .env.example .env
 # Deploy
 cd infra/deploy
 docker-compose -f docker-compose.prod.yml up -d
-
-# Run migrations
-docker exec -it api npm run db:migrate
 ```
 
 ### Option 2: Render.com
@@ -73,7 +70,8 @@ See `.env.example` in the root directory for all required variables.
 
 **Required for all deployments:**
 
-- `DATABASE_URL`
+- `MONGODB_URI`
+- `MONGODB_DB_NAME`
 - `REDIS_URL`
 - `GITHUB_APP_*` credentials
 - `AI_API_KEY`

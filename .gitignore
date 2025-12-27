@@ -49,4 +49,3 @@ docker-compose.override.yml
 # Misc
 .turbo/
 *.tsbuildinfo
-docs

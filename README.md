@@ -17,10 +17,7 @@ cp .env.example .env
 # 3. Start databases (Docker)
 npm run docker:dev
 
-# 4. Run migrations
-npm run db:migrate
-
-# 5. Start all services
+# 4. Start all services
 npm run dev
 ```
 
@@ -42,8 +39,7 @@ ai-code-review-platform/
 │   ├── types/          # TypeScript types
 │   └── prompts/        # AI prompt templates
 └── infra/              # Infrastructure
-    ├── docker/         # Docker Compose + Dockerfiles
-    └── migrations/     # PostgreSQL migrations
+    └── docker/         # Docker Compose + Dockerfiles
 ```
 
 ## 🧩 Architecture
@@ -53,7 +49,7 @@ ai-code-review-platform/
 | **Next.js**       | Web UI, onboarding, org & repo management, run insights       |
 | **Node.js API**   | Auth, RBAC, GitHub webhooks, job dispatch, policy enforcement |
 | **Python Worker** | Diff processing, static rules, AI reasoning, comment posting  |
-| **PostgreSQL**    | System of record (orgs, repos, runs, findings, audit)         |
+| **MongoDB**       | System of record (orgs, repos, runs, findings, audit)         |
 | **Redis Queue**   | Async job queue & retry                                       |
 | **GitHub App**    | Repo + PR integration & permissions                           |
 
@@ -65,9 +61,8 @@ ai-code-review-platform/
 | `npm run start`      | Start all services in production mode  |
 | `npm run build`      | Build all packages                     |
 | `npm run test`       | Run all tests                          |
-| `npm run docker:dev` | Start Postgres + Redis, then run dev   |
+| `npm run docker:dev` | Start MongoDB + Redis, then run dev    |
 | `npm run docker:up`  | Start all Docker services              |
-| `npm run db:migrate` | Run database migrations                |
 
 ## ⚙️ Environment Variables
 
@@ -75,7 +70,8 @@ Copy `.env.example` to `.env` and configure:
 
 **Required:**
 
-- `DATABASE_URL` - PostgreSQL connection string
+- `MONGODB_URI` - MongoDB connection string
+- `MONGODB_DB_NAME` - MongoDB database name
 - `REDIS_URL` - Redis connection string
 - `GITHUB_APP_ID` - GitHub App ID
 - `GITHUB_APP_PRIVATE_KEY` - GitHub App private key
@@ -90,7 +86,7 @@ Copy `.env.example` to `.env` and configure:
 **Read:** metadata, repos, pull requests, contents  
 **Write:** pull request comments, pull request reviews, checks
 
-## 📊 Database Schema
+## 📊 Database Collections
 
 - **organizations** - GitHub org/user account mapping
 - **repositories** - Repos with enable/disable status
@@ -98,8 +94,7 @@ Copy `.env.example` to `.env` and configure:
 - **pull_requests** - PR tracking with run modes
 - **runs** - Execution instances with metrics
 - **findings** - Normalized review results
-- **repo_config** - Per-repo settings
-- **audit_log** - Full traceability
+- **audit_logs** - Full traceability
 
 ## 🛡️ Core Principles
 
