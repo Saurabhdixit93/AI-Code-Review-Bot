@@ -40,5 +40,5 @@ class Repository(Document):
         indexes = [
             "orgId",
             pymongo.IndexModel([("githubRepoId", pymongo.ASCENDING)], unique=True),
-            "fullName",
+            pymongo.IndexModel([("fullName", pymongo.ASCENDING)], unique=True),
         ]

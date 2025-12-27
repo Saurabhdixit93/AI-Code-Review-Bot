@@ -20,5 +20,5 @@ class Organization(Document):
         name = "organizations"
         indexes = [
             pymongo.IndexModel([("githubOrgId", pymongo.ASCENDING)], unique=True),
-            "slug",
+            pymongo.IndexModel([("slug", pymongo.ASCENDING)], unique=True),
         ]
