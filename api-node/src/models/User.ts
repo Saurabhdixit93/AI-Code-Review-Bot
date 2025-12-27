@@ -6,8 +6,8 @@ export interface IUser extends Document {
   name?: string;
   email?: string;
   avatarUrl?: string;
-  accessTokenEncrypted?: Buffer;
-  refreshTokenEncrypted?: Buffer;
+  accessTokenEncrypted?: string;
+  refreshTokenEncrypted?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -19,8 +19,8 @@ const userSchema = new Schema<IUser>(
     name: { type: String },
     email: { type: String },
     avatarUrl: { type: String },
-    accessTokenEncrypted: { type: Buffer },
-    refreshTokenEncrypted: { type: Buffer },
+    accessTokenEncrypted: { type: String },
+    refreshTokenEncrypted: { type: String },
   },
   {
     timestamps: true,
