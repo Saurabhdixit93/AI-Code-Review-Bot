@@ -103,10 +103,11 @@ def run_worker():
     # Create and run worker
     redis_conn = get_redis_client()
     
+    import uuid
     worker = Worker(
         queues=[QUEUE_ANALYSIS],
         connection=redis_conn,
-        name=f"worker-{settings.node_env}",
+        name=f"worker-{settings.node_env}-{uuid.uuid4().hex[:8]}",
     )
     
     logger.info("Starting worker", queues=[QUEUE_ANALYSIS])
