@@ -29,7 +29,7 @@ export default function OrganizationsPage() {
           <h1 className="text-xl font-semibold">Organizations</h1>
           <a
             href={`https://github.com/apps/${
-              process.env.NEXT_PUBLIC_GITHUB_APP_SLUG || "ai-code-review"
+              process.env.NEXT_PUBLIC_GITHUB_APP_SLUG || "ai-code-app93"
             }/installations/new`}
             className="btn-primary"
           >
