@@ -112,7 +112,16 @@ export const orgsApi = {
 // Repositories API
 export const reposApi = {
   list: (token: string, orgId: string, params?: RepoListParams) => {
-    const query = new URLSearchParams(params as any).toString();
+    // Determine the query string
+    const searchParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          searchParams.append(key, value);
+        }
+      });
+    }
+    const query = searchParams.toString();
     return apiClient<PaginatedResponse<Repository>>(
       `/api/repositories/org/${orgId}?${query}`,
       {},
