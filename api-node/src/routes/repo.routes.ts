@@ -1,4 +1,5 @@
 import { Router, Response, NextFunction } from "express";
+import { Types } from "mongoose";
 import { z } from "zod";
 import { Repository } from "../models/Repository";
 import { PullRequest } from "../models/PullRequest";
@@ -25,7 +26,7 @@ router.get(
     try {
       const { enabled, search, page = "1", limit = "20" } = req.query;
 
-      const query: any = { orgId: req.params.orgId };
+      const query: any = { orgId: new Types.ObjectId(req.params.orgId) };
 
       if (enabled !== undefined) {
         query.isEnabled = enabled === "true";
