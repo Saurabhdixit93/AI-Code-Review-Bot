@@ -15,6 +15,7 @@ export const authOptions: NextAuthOptions = {
           scope: "read:user user:email",
         },
       },
+      checks: ["pkce"], // Bypass state check, rely on PKCE
     }),
   ],
   callbacks: {
