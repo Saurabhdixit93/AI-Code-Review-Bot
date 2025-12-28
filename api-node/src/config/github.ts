@@ -8,9 +8,32 @@ import { env } from "./env";
 import { logger } from "../utils/logger";
 
 // Parse private key (handle both inline and file-based)
+
 function parsePrivateKey(key: string): string {
-  // Replace escaped newlines with actual newlines
-  return key.replace(/\\n/g, "\n");
+  if (!key) return "";
+
+  // 1. Remove wrapping quotes if present
+  let cleanKey = key.replace(/^"|"$/g, "");
+
+  // 2. Replace escaped newlines with actual newlines
+  cleanKey = cleanKey.replace(/\\n/g, "\n");
+
+  // 3. Check for Base64 encoding if it doesn't look like a PEM key
+  if (
+    !cleanKey.includes("-----BEGIN RSA PRIVATE KEY-----") &&
+    !cleanKey.includes("-----BEGIN PRIVATE KEY-----")
+  ) {
+    try {
+      const decoded = Buffer.from(cleanKey, "base64").toString("utf-8");
+      if (decoded.includes("-----BEGIN")) {
+        return decoded;
+      }
+    } catch (e) {
+      // Not base64, ignore
+    }
+  }
+
+  return cleanKey;
 }
 
 /**
