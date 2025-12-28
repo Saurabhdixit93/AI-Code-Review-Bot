@@ -4,7 +4,7 @@
 
 import hashlib
 from dataclasses import dataclass
-from typing import Union
+from typing import Union, Optional
 import structlog
 
 from ..rules.engine import StaticFinding
@@ -18,30 +18,30 @@ class NormalizedFinding:
     """Normalized finding for storage and output."""
     run_id: str
     file_path: str
-    line_start: int | None
-    line_end: int | None
+    line_start: Optional[int]
+    line_end: Optional[int]
     source: str  # static | ai
     category: str
     severity: str
     confidence: str
     title: str
     message: str
-    suggestion: str | None
-    code_snippet: str | None
-    rule_id: str | None
-    ai_reasoning: str | None
-    ai_model: str | None
+    suggestion: Optional[str]
+    code_snippet: Optional[str]
+    rule_id: Optional[str]
+    ai_reasoning: Optional[str]
+    ai_model: Optional[str]
     suppressed: bool
-    suppression_reason: str | None
+    suppression_reason: Optional[str]
     fingerprint: str
 
 
 def generate_fingerprint(
     file_path: str,
-    line_start: int | None,
+    line_start: Optional[int],
     source: str,
     title: str,
-    rule_id: str | None = None,
+    rule_id: Optional[str] = None,
 ) -> str:
     """Generate unique fingerprint for deduplication."""
     components = [
@@ -131,7 +131,7 @@ def deduplicate_findings(findings: list[NormalizedFinding]) -> list[NormalizedFi
     return unique
 
 
-def should_suppress(finding: NormalizedFinding, min_severity: str) -> tuple[bool, str | None]:
+def should_suppress(finding: NormalizedFinding, min_severity: str) -> tuple[bool, Optional[str]]:
     """Check if finding should be suppressed."""
     severity_order = {"block": 4, "high": 3, "medium": 2, "low": 1}
     

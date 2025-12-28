@@ -90,7 +90,7 @@ def run_worker():
     asyncio.run(worker_startup())
     
     # Setup signal handlers
-    shutdown_event = asyncio.Event()
+
     
     def signal_handler(sig, frame):
         logger.info("Received shutdown signal", signal=sig)

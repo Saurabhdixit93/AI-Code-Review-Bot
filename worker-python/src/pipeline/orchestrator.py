@@ -33,10 +33,10 @@ class AnalysisConfig:
     enable_ai: bool = True
     ai_mode: str = "balanced"
     ai_model_override: Optional[str] = None
-    excluded_paths: list[str] | None = None
-    excluded_file_patterns: list[str] | None = None
-    enabled_rules: list[str] | None = None
-    disabled_rules: list[str] | None = None
+    excluded_paths: Optional[list[str]] = None
+    excluded_file_patterns: Optional[list[str]] = None
+    enabled_rules: Optional[list[str]] = None
+    disabled_rules: Optional[list[str]] = None
 
 
 @dataclass
