@@ -105,24 +105,22 @@ export async function refreshAccessToken(refreshToken: string): Promise<{
 // Get authenticated user info
 export async function getAuthenticatedUser(accessToken: string) {
   const octokit = getUserOctokit(accessToken);
-  const { data } = await octokit.users.getAuthenticated();
+  const { data } = await octokit.request("GET /user");
   return data;
 }
 
 // Get user's installations
 export async function getUserInstallations(accessToken: string) {
   const octokit = getUserOctokit(accessToken);
-  const { data } = await octokit.apps.listInstallationsForAuthenticatedUser();
-  return data.installations;
+  const { data } = await octokit.request("GET /user/installations");
+  return (data as any).installations;
 }
 
 // Get installation repositories
 export async function getInstallationRepositories(installationId: number) {
   const octokit = await getInstallationOctokit(installationId);
-  const { data } = await (
-    octokit as any
-  ).rest.apps.listReposAccessibleToInstallation();
-  return data.repositories;
+  const { data } = await octokit.request("GET /installation/repositories");
+  return (data as any).repositories;
 }
 
 // Get pull request details
