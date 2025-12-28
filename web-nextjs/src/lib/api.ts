@@ -89,6 +89,16 @@ export const orgsApi = {
       },
       token
     ),
+
+  claim: (token: string, installationId: number) =>
+    apiClient<{ id: string }>(
+      "/api/organizations/claim",
+      {
+        method: "POST",
+        body: JSON.stringify({ installationId }),
+      },
+      token
+    ),
 };
 
 // Repositories API

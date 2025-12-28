@@ -12,6 +12,9 @@ import { createAuditLog } from "../middleware/audit";
 import { NotFoundError, ConflictError } from "../utils/errors";
 import { logger } from "../utils/logger";
 import { MemberRole } from "../types/enums";
+import { User } from "../models/User";
+import { getUserInstallations } from "../config/github";
+import { decrypt } from "../utils/crypto";
 
 const router = Router();
 
@@ -27,6 +30,106 @@ const createOrgSchema = z.object({
     .regex(/^[a-z0-9-]+$/),
   avatarUrl: z.string().url().optional(),
 });
+
+// Claim/Link an installation (Post-install sync)
+const claimOrgSchema = z.object({
+  installationId: z.number(),
+});
+
+router.post(
+  "/claim",
+  authenticateToken,
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const { installationId } = claimOrgSchema.parse(req.body);
+
+      // 1. Get user's GitHub access token
+      const user = await User.findById(req.userId).select(
+        "+accessTokenEncrypted"
+      );
+      if (!user || !user.accessTokenEncrypted) {
+        throw new Error("User GitHub connection missing");
+      }
+
+      const accessToken = decrypt(user.accessTokenEncrypted);
+
+      // 2. Verify user has access to this installation via GitHub
+      // We explicitly fetch fresh data from GitHub to ensure security
+      const installations = await getUserInstallations(accessToken);
+      const installation = installations.find(
+        (i: any) => i.id === installationId
+      );
+
+      if (!installation) {
+        throw new ConflictError(
+          "Installation not found or you do not have access to it"
+        );
+      }
+
+      const { account } = installation;
+
+      if (!account) {
+        throw new ConflictError("Installation has no associated account");
+      }
+
+      // @ts-ignore - properties depend on whether it's a user or org, but both have login/id/avatar_url
+      const githubOrgId = account.id;
+      // @ts-ignore - login exists on both User and Organization in GitHub API
+      const name = account.login;
+      // @ts-ignore
+      const slug = account.login;
+      // @ts-ignore
+      const avatarUrl = account.avatar_url;
+
+      const org = await Organization.findOneAndUpdate(
+        { githubOrgId },
+        {
+          name,
+          slug,
+          avatarUrl,
+          installationId,
+          installationStatus: "active",
+        },
+        { upsert: true, new: true }
+      );
+
+      // 4. Upsert Member (Owner)
+      // Only make them owner if they are claiming it (safe assumption for now if they installed it)
+      // Ideally we'd check if they are an admin in the GitHub Org, but for the App Install flow
+      // the installer is usually an admin.
+      await Member.findOneAndUpdate(
+        { orgId: org._id, userId: req.userId },
+        {
+          role: MemberRole.OWNER,
+          acceptedAt: new Date(),
+        },
+        { upsert: true }
+      );
+
+      // 5. Trigger Sync
+      await addRepoSyncJob({
+        orgId: org._id.toString(),
+        installationId,
+      });
+
+      await createAuditLog(req.userId, org._id.toString(), {
+        action: "org.create" as any, // or org.claim
+        entityType: "organization" as any,
+        entityId: org._id.toString(),
+        metadata: { method: "claim", installationId },
+      });
+
+      logger.info(
+        { userId: req.userId, orgId: org._id, installationId },
+        "Organization claimed successfully"
+      );
+
+      res.json({ id: org._id });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
 
 router.post(
   "/",

@@ -1,14 +1,17 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Building2, ChevronRight, Loader2, Plus } from "lucide-react";
 import { orgsApi, Organization } from "@/lib/api";
 import { cn, roleColors } from "@/lib/utils";
+import { useEffect } from "react";
 
 export default function OrganizationsPage() {
   const { data: session, status } = useSession();
+  const queryClient = useQueryClient();
 
   console.log("OrganizationsPage: status:", status);
   console.log("OrganizationsPage: accessToken exists:", !!session?.accessToken);
@@ -21,6 +24,28 @@ export default function OrganizationsPage() {
     },
     enabled: !!session?.accessToken,
   });
+
+  // Handle post-installation redirect
+  const searchParams = useSearchParams();
+  const installationId = searchParams.get("installation_id");
+  const router = useRouter();
+
+  useEffect(() => {
+    if (installationId && session?.accessToken) {
+      const claimOrg = async () => {
+        try {
+          console.log("Claiming installation:", installationId);
+          await orgsApi.claim(session.accessToken, parseInt(installationId));
+          // Refetch orgs and clear param
+          queryClient.invalidateQueries({ queryKey: ["organizations"] });
+          router.replace("/orgs");
+        } catch (error) {
+          console.error("Failed to claim organization:", error);
+        }
+      };
+      claimOrg();
+    }
+  }, [installationId, session, router, queryClient]);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
