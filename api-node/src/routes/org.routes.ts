@@ -314,4 +314,44 @@ router.post(
   }
 );
 
+// Delete organization
+router.delete(
+  "/:orgId",
+  authenticateToken,
+  requireRole("owner"),
+  async (req: RBACRequest, res: Response, next: NextFunction) => {
+    try {
+      const orgId = req.params.orgId;
+      const org = await Organization.findById(orgId);
+
+      if (!org) {
+        throw new NotFoundError("Organization");
+      }
+
+      // 1. Delete Organization
+      await Organization.deleteOne({ _id: orgId });
+
+      // 2. Delete Members
+      await Member.deleteMany({ orgId });
+
+      // 3. Delete Repositories
+      await Repository.deleteMany({ orgId });
+
+      // Audit log
+      await createAuditLog(req.userId, undefined as any, {
+        action: "org.delete" as any,
+        entityType: "organization" as any,
+        entityId: orgId,
+        metadata: { name: org.name, slug: org.slug },
+      });
+
+      logger.info({ userId: req.userId, orgId }, "Organization deleted");
+
+      res.json({ success: true });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 export default router;

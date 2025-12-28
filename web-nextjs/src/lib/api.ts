@@ -99,6 +99,14 @@ export const orgsApi = {
       },
       token
     ),
+  delete: (token: string, orgId: string) =>
+    apiClient<{ success: boolean }>(
+      `/api/organizations/${orgId}`,
+      {
+        method: "DELETE",
+      },
+      token
+    ),
 };
 
 // Repositories API

@@ -27,6 +27,7 @@ import {
   memberRoutes,
   auditRoutes,
 } from "./routes";
+import { syncWorker } from "./workers";
 
 const app: Express = express();
 
@@ -137,6 +138,7 @@ const shutdown = async (signal: string) => {
   try {
     await closeDatabasePool();
     await closeRedisConnections();
+    await syncWorker.close();
     logger.info("Graceful shutdown complete");
     process.exit(0);
   } catch (error) {

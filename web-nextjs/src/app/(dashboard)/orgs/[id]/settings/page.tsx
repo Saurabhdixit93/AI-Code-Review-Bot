@@ -3,7 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   ArrowLeft,
@@ -22,6 +22,7 @@ export default function OrgSettingsPage() {
   const orgId = params.id as string;
   const { data: session } = useSession();
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -36,6 +37,14 @@ export default function OrgSettingsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["organization", orgId] });
       queryClient.invalidateQueries({ queryKey: ["repositories", orgId] });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => orgsApi.delete(session!.accessToken, orgId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["organizations"] });
+      router.replace("/orgs");
     },
   });
 
@@ -178,7 +187,20 @@ export default function OrgSettingsPage() {
                 >
                   Cancel
                 </button>
-                <button className="btn-danger">Yes, Remove Organization</button>
+                <button
+                  className="btn-danger"
+                  onClick={() => deleteMutation.mutate()}
+                  disabled={deleteMutation.isPending}
+                >
+                  {deleteMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Removing...
+                    </>
+                  ) : (
+                    "Yes, Remove Organization"
+                  )}
+                </button>
               </div>
             </div>
           )}
