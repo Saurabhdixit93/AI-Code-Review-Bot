@@ -11,6 +11,7 @@ venv/
 .env.local
 .env.*.local
 
+
 # Build outputs
 dist/
 build/
