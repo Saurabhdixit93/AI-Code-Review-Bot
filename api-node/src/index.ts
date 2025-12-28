@@ -97,7 +97,7 @@ app.use((req, res, next) => {
   if (req.path === "/api/webhooks/github") {
     return next();
   }
-  express.json({ limit: "1mb" })(req, res, next);
+  express.json({ limit: "10mb" })(req, res, next);
 });
 
 // Health check
