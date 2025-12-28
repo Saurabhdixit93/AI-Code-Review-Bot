@@ -31,6 +31,7 @@ import {
 const app: Express = express();
 
 // Security middleware
+app.set("trust proxy", 1); // Trust first proxy (required for Render/Heroku/etc)
 app.use(helmet());
 
 // CORS Configuration - supports multiple origins from env
